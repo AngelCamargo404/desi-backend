@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Aprobado - <%= rifa.titulo %></title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .ticket-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .ticket-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .ticket-code {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #FF6B35;
+        }
+        .success-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .button {
+            display: inline-block;
+            background: #FF6B35;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 ¡FELICITACIONES!</h1>
+        <p>Tu ticket ha sido aprobado exitosamente</p>
+    </div>
+    
+    <div class="content">
+        <div class="success-badge">
+            ✅ TICKET APROBADO
+        </div>
+        
+        <h2>¡Ya estás participando en la rifa!</h2>
+        <p>Hola <strong><%= ticket.comprador.nombre %></strong>,</p>
+        <p>Nos complace informarte que tu ticket ha sido <strong>verificado y aprobado</strong> satisfactoriamente. 
+           Ya estás oficialmente participando en la rifa y tienes la oportunidad de ganar increíbles premios.</p>
+        
+        <div class="ticket-card">
+            <h3>TU TICKET</h3>
+            <div class="ticket-number">#<%= ticket.numero %></div>
+            <div class="ticket-code"><%= ticket.codigo %></div>
+            <p><strong><%= rifa.titulo %></strong></p>
+        </div>
+        
+        <div class="info-section">
+            <h3>📋 Información de tu Participación</h3>
+            <p><strong>Rifa:</strong> <%= rifa.titulo %></p>
+            <p><strong>Número de Ticket:</strong> #<%= ticket.numero %></p>
+            <p><strong>Código Único:</strong> <%= ticket.codigo %></p>
+            <p><strong>Fecha de Aprobación:</strong> <%= fecha %></p>
+            <p><strong>Método de Pago:</strong> <%= ticket.metodoPago %></p>
+        </div>
+        
+        <div class="info-section">
+            <h3>🎯 Próximos Pasos</h3>
+            <p>• Guarda este email como comprobante de tu participación</p>
+            <p>• El sorteo se realizará en la fecha establecida</p>
+            <p>• Los resultados serán publicados en nuestra plataforma</p>
+            <p>• En caso de ganar, te contactaremos por este mismo medio</p>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="<%= appUrl %>" class="button">Ver Rifa</a>
+        </div>
+        
+        <div class="footer">
+            <p>Si tienes alguna pregunta o necesitas asistencia, no dudes en contactarnos.</p>
+            <p>© <%= new Date().getFullYear() %> Sistema de Rifas - Todos los derechos reservados</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,33 +1,25 @@
+// routes/ticketRoutes.js - AGREGAR nuevas rutas
 const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticketController');
 const { upload, handleUploadErrors } = require('../config/upload');
 
-// ... (mantener todas las rutas existentes)
+// Rutas existentes...
+router.get('/rifa/:rifaId/numeros-ocupados', ticketController.obtenerNumerosOcupados);
+router.get('/metodos-pago', ticketController.obtenerMetodosPago);
+router.get('/metodos-pago/:metodoPago', ticketController.obtenerInformacionMetodoPago);
 
-// @desc    Comprar ticket (con comprobante)
-// @route   POST /api/tickets/:id/comprar
-// @access  Public
-router.post('/:id/comprar', upload, handleUploadErrors, ticketController.comprarTicket);
+// NUEVAS RUTAS para compras agrupadas
+router.get('/rifa/:rifaId/verificar-tickets', ticketController.verificarTicketsPorEmail);
+router.get('/rifa/:rifaId/compras', ticketController.obtenerComprasPorRifa);
+router.post('/compra/:transaccionId/verificar', ticketController.verificarCompra);
 
-// @desc    Obtener tickets por estado/ciudad
-// @route   GET /api/tickets/estado-ciudad/:estadoCiudad
-// @access  Public
+// Rutas existentes...
+router.get('/rifa/:rifaId', ticketController.obtenerTicketsPorRifa);
+router.post('/comprar', upload, handleUploadErrors, ticketController.comprarTicket);
 router.get('/estado-ciudad/:estadoCiudad', ticketController.obtenerTicketsPorEstadoCiudad);
-
-// @desc    Verificar ticket
-// @route   POST /api/tickets/:id/verificar
-// @access  Public
 router.post('/:id/verificar', ticketController.verificarTicket);
-
-// @desc    Obtener tickets no verificados
-// @route   GET /api/tickets/no-verificados
-// @access  Public
 router.get('/no-verificados', ticketController.obtenerTicketsNoVerificados);
-
-// @desc    Actualizar comprobante
-// @route   PATCH /api/tickets/:id/comprobante
-// @access  Public
 router.patch('/:id/comprobante', upload, handleUploadErrors, ticketController.actualizarComprobante);
 
 module.exports = router;
