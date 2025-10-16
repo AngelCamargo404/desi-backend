@@ -1,4 +1,4 @@
-// models/Winner.js
+// models/Winner.js - ACTUALIZADO
 const mongoose = require('mongoose');
 
 const winnerSchema = new mongoose.Schema({
@@ -47,6 +47,19 @@ const winnerSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  descripcionPremio: {
+    type: String,
+    trim: true
+  },
+  valorPremio: {
+    type: Number,
+    default: null
+  },
+  posicionPremio: {
+    type: Number,
+    required: true,
+    default: 1
+  },
   esGanadorPrincipal: {
     type: Boolean,
     default: false
@@ -82,6 +95,7 @@ winnerSchema.index({ ticket: 1 }, { unique: true });
 winnerSchema.index({ 'comprador.email': 1 });
 winnerSchema.index({ numeroTicket: 1 });
 winnerSchema.index({ esGanadorPrincipal: 1 });
+winnerSchema.index({ posicionPremio: 1 });
 
 // Método virtual para información pública
 winnerSchema.methods.obtenerInfoPublica = function() {
@@ -92,6 +106,9 @@ winnerSchema.methods.obtenerInfoPublica = function() {
     comprador: this.comprador,
     numeroTicket: this.numeroTicket,
     premio: this.premio,
+    descripcionPremio: this.descripcionPremio,
+    valorPremio: this.valorPremio,
+    posicionPremio: this.posicionPremio,
     esGanadorPrincipal: this.esGanadorPrincipal,
     fechaSorteo: this.fechaSorteo,
     entregado: this.entregado,
