@@ -251,15 +251,13 @@ class TicketController {
       const tickets = await ticketRepository.verificarCompra(transaccionId, verificadoPor);
 
       // Enviar emails de confirmación para cada ticket
-      for (const ticket of tickets) {
-        try {
-          const rifa = await raffleRepository.obtenerPorId(ticket.rifa);
-          if (rifa && ticket.comprador.email) {
-            await emailService.enviarTicketAprobado(ticket, rifa);
-          }
-        } catch (emailError) {
-          console.error('Error enviando email de confirmación:', emailError);
-        }
+      try {
+        // Obtener información de la rifa (puede ser la misma para todos los tickets)
+        const rifa = await raffleRepository.obtenerPorId(tickets[0].rifa);
+        // Enviar un único email con todos los tickets de la transacción
+        await emailService.enviarCompraAprobada(transaccionId, tickets, rifa);
+      } catch (emailError) {
+        console.error('Error enviando email de confirmación de compra:', emailError);
       }
 
       res.json({

@@ -24,15 +24,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Servir archivos estáticos de React (después del build)
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Importar rutas de la API
 const apiRoutes = require('./routes');
 app.use('/api', apiRoutes);
 
-// Para cualquier otra ruta, servir la aplicación React
-app.get('/{*any}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+// Para cualquier otra ruta, servir la aplicación (Vite build -> dist)
+// Catch-all: cualquier ruta que no sea API ni uploads devuelve el index de la SPA
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
 // Iniciar servidor
