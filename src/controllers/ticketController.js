@@ -51,13 +51,11 @@ class TicketController {
   // Comprar ticket (actualizado para manejar archivos)
   async comprarTicket(req, res) {
     try {
-      console.log('🔍 Solicitud de compra recibida');
-      
       const { rifaId } = req.body;
       const datosCompra = JSON.parse(req.body.datosCompra || '{}');
       const archivoComprobante = req.file;
 
-      // Validaciones (se mantienen igual)
+      // Validaciones básicas
       if (!datosCompra.comprador || !datosCompra.comprador.nombre || 
           !datosCompra.comprador.email || !datosCompra.comprador.estadoCiudad) {
         return res.status(400).json({
@@ -88,14 +86,32 @@ class TicketController {
         });
       }
 
-      if (!paymentService.validarMetodoPago(datosCompra.metodoPago)) {
-        return res.status(400).json({
+      // Validar método de pago con manejo de errores
+      const metodosDisponibles = await paymentService.obtenerMetodosPagoDisponibles();
+      
+      if (metodosDisponibles.length === 0) {
+        return res.status(503).json({
           success: false,
-          message: `Método de pago no válido. Los métodos permitidos son: ${paymentService.obtenerMetodosPagoDisponibles().join(', ')}`
+          message: 'No hay métodos de pago disponibles en este momento. Por favor, contacte al administrador.'
         });
       }
 
-      const requiereComprobante = paymentService.requiereComprobante(datosCompra.metodoPago);
+      if (!metodosDisponibles.includes(datosCompra.metodoPago)) {
+        return res.status(400).json({
+          success: false,
+          message: `Método de pago no válido. Los métodos permitidos son: ${metodosDisponibles.join(', ')}`
+        });
+      }
+
+      // Validar comprobante con manejo de errores
+      let requiereComprobante = true;
+      try {
+        requiereComprobante = await paymentService.requiereComprobante(datosCompra.metodoPago);
+      } catch (error) {
+        console.warn('⚠️ Error validando comprobante, usando valor por defecto:', error.message);
+        // Continuar con el valor por defecto (true)
+      }
+
       if (requiereComprobante && !archivoComprobante) {
         return res.status(400).json({
           success: false,
@@ -175,9 +191,6 @@ class TicketController {
     try {
       const { rifaId } = req.params;
       const { pagina, limite, verificado } = req.query;
-      
-      console.log('🔍 Obteniendo compras para rifa:', rifaId);
-      console.log('📋 Parámetros:', { pagina, limite, verificado });
 
       // Primero verifiquemos que hay tickets
       const ticketsCount = await Ticket.countDocuments({ 
@@ -185,19 +198,13 @@ class TicketController {
         estado: 'vendido' 
       });
       
-      console.log('🎫 Total tickets vendidos en BD:', ticketsCount);
-
+      
       const resultado = await ticketRepository.obtenerComprasPorRifa(
         rifaId,
         { verificado },
         parseInt(pagina) || 1,
         parseInt(limite) || 10
       );
-
-      console.log('📦 Resultado de obtenerComprasPorRifa:', {
-        comprasCount: resultado.compras ? resultado.compras.length : 0,
-        totalCompras: resultado.totalCompras || 0
-      });
 
       res.json({
         success: true,
@@ -289,14 +296,12 @@ class TicketController {
 
       // NUEVO: Enviar email de confirmación
       try {
-        console.log('📧 Intentando enviar email de confirmación...');
         
       //  Obtener información completa de la rifa
         const rifa = await raffleRepository.obtenerPorId(ticket.rifa);
         
         if (rifa && ticket.comprador.email) {
           await emailService.enviarTicketAprobado(ticket, rifa);
-          console.log('✅ Email de confirmación enviado exitosamente');
         } else {
           console.warn('⚠️ No se pudo enviar el email: Rifa o email del comprador no encontrado');
         }
@@ -343,8 +348,6 @@ class TicketController {
       const { rifaId } = req.params;
       const { email } = req.query;
 
-      console.log('🔍 Verificando tickets para:', { rifaId, email });
-
       if (!email) {
         return res.status(400).json({
           success: false,
@@ -369,8 +372,6 @@ class TicketController {
       })
       .populate('rifa', 'titulo precioTicket ticketsTotales')
       .sort({ fechaCompra: -1, transaccionId: 1 });
-
-      console.log(`🎫 Encontrados ${tickets.length} tickets para el email: ${email}`);
 
       if (tickets.length === 0) {
         return res.json({
@@ -429,8 +430,6 @@ class TicketController {
       // Calcular estadísticas
       const totalTickets = tickets.length;
       const comprasVerificadas = comprasArray.filter(compra => compra.verificado).length;
-
-      console.log(`📊 Resumen: ${comprasArray.length} compras, ${totalTickets} tickets, ${comprasVerificadas} verificadas`);
 
       res.json({
         success: true,
