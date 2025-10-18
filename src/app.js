@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const app = express();
+const paymentService = require('./services/paymentService');
 const port = process.env.PORT || 3001;
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rifa-desi-app', {
@@ -34,6 +35,10 @@ app.use('/api', apiRoutes);
 // Catch-all: cualquier ruta que no sea API ni uploads devuelve el index de la SPA
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+});
+
+paymentService.inicializar().catch(error => {
+  console.error('❌ Error inicializando servicio de pagos:', error);
 });
 
 // Iniciar servidor

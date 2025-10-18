@@ -9,6 +9,7 @@ const raffleRoutes = require('./raffleRoutes');
 const prizeRoutes = require('./prizeRoutes'); // Nueva ruta de premios
 const activeRaffleRoutes = require('./activeRaffleRoutes');
 const winnerRoutes = require('./winnerRoutes');
+const paymentMethodRoutes = require('./paymentMethodRoutes');
 
 // Usar rutas
 router.use('/tickets', ticketRoutes);
@@ -17,6 +18,7 @@ router.use('/raffles', raffleRoutes);
 router.use('/prizes', prizeRoutes); // Agregar esta línea
 router.use('/active-raffle', activeRaffleRoutes);
 router.use('/winners', winnerRoutes);
+router.use('/payment-methods', paymentMethodRoutes);
 
 // Ruta de health check
 router.get('/health', (req, res) => {
