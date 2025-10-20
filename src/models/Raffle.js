@@ -1,4 +1,4 @@
-// models/Raffle.js - ACTUALIZADO (sin premios embebidos)
+// models/Raffle.js - ACTUALIZADO con monedas múltiples
 const mongoose = require('mongoose');
 
 const raffleSchema = new mongoose.Schema({
@@ -18,6 +18,16 @@ const raffleSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'El precio del ticket es requerido'],
     min: [1, 'El precio debe ser mayor a 0']
+  },
+  precioTicketBS: {
+    type: Number,
+    required: false,
+    min: [0, 'El precio en BS debe ser mayor o igual a 0']
+  },
+  moneda: {
+    type: String,
+    enum: ['USD', 'BS'],
+    default: 'USD'
   },
   minTickets: {
     type: Number,
@@ -102,6 +112,8 @@ raffleSchema.methods.obtenerInfoPublica = function() {
     titulo: this.titulo,
     descripcion: this.descripcion,
     precioTicket: this.precioTicket,
+    precioTicketBS: this.precioTicketBS,
+    moneda: this.moneda,
     minTickets: this.minTickets,
     ticketsTotales: this.ticketsTotales,
     ticketsVendidos: this.ticketsVendidos,
@@ -109,7 +121,6 @@ raffleSchema.methods.obtenerInfoPublica = function() {
     imagen: this.imagen,
     estado: this.estado,
     fechaSorteo: this.fechaSorteo
-    // Los premios ahora se obtienen por separado
   };
 };
 

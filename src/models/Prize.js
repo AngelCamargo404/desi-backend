@@ -1,4 +1,4 @@
-// models/Prize.js
+// models/Prize.js - ACTUALIZADO con monedas múltiples
 const mongoose = require('mongoose');
 
 const prizeSchema = new mongoose.Schema({
@@ -23,6 +23,17 @@ const prizeSchema = new mongoose.Schema({
     type: Number,
     required: false,
     min: [0, 'El valor no puede ser negativo']
+  },
+  // NUEVOS CAMPOS PARA MÚLTIPLES MONEDAS
+  valorBS: {
+    type: Number,
+    required: false,
+    min: [0, 'El valor en BS no puede ser negativo']
+  },
+  moneda: {
+    type: String,
+    enum: ['USD', 'BS'],
+    default: 'USD'
   },
   rifa: {
     type: mongoose.Schema.Types.ObjectId,
@@ -71,7 +82,7 @@ prizeSchema.index({ rifa: 1 });
 prizeSchema.index({ posicion: 1 });
 prizeSchema.index({ estado: 1 });
 prizeSchema.index({ ticketGanador: 1 });
-prizeSchema.index({ rifa: 1, posicion: 1 }, { unique: true }); // Premio único por posición en cada rifa
+prizeSchema.index({ rifa: 1, posicion: 1 }, { unique: true });
 
 // Método virtual para verificar si el premio está asignado
 prizeSchema.virtual('estaAsignado').get(function() {
@@ -100,7 +111,7 @@ prizeSchema.methods.desasignarGanador = async function() {
   return await this.save();
 };
 
-// Método para obtener información pública
+// Método para obtener información pública (ACTUALIZADO)
 prizeSchema.methods.obtenerInfoPublica = function() {
   return {
     id: this._id,
@@ -108,6 +119,8 @@ prizeSchema.methods.obtenerInfoPublica = function() {
     descripcion: this.descripcion,
     posicion: this.posicion,
     valor: this.valor,
+    valorBS: this.valorBS, // NUEVO
+    moneda: this.moneda,   // NUEVO
     rifa: this.rifa,
     imagen: this.imagen,
     estado: this.estado,
@@ -117,7 +130,7 @@ prizeSchema.methods.obtenerInfoPublica = function() {
   };
 };
 
-// Método para obtener información completa (incluye ganador)
+// Método para obtener información completa (incluye ganador) - ACTUALIZADO
 prizeSchema.methods.obtenerInfoCompleta = async function() {
   await this.populate('ticketGanador', 'codigo comprador.nombre comprador.email');
   await this.populate('rifa', 'titulo');
@@ -128,6 +141,8 @@ prizeSchema.methods.obtenerInfoCompleta = async function() {
     descripcion: this.descripcion,
     posicion: this.posicion,
     valor: this.valor,
+    valorBS: this.valorBS, // NUEVO
+    moneda: this.moneda,   // NUEVO
     rifa: {
       id: this.rifa._id,
       titulo: this.rifa.titulo

@@ -1,4 +1,4 @@
-// controllers/prizeController.js
+// controllers/prizeController.js - ACTUALIZADO con monedas múltiples
 const prizeRepository = require('../repositories/prizeRepository');
 
 class PrizeController {
@@ -21,7 +21,7 @@ class PrizeController {
     }
   }
 
-  // Crear múltiples premios para una rifa
+  // Crear múltiples premios para una rifa - ACTUALIZADO
   async crearPremiosParaRifa(req, res) {
     try {
       const { rifaId } = req.params;
@@ -34,12 +34,37 @@ class PrizeController {
         });
       }
 
-      const premiosCreados = await prizeRepository.crearPremiosParaRifa(rifaId, premios);
+      // Validar que los premios tengan la estructura correcta
+      const premiosValidos = premios.map((premio, index) => {
+        if (!premio.nombre || !premio.descripcion) {
+          throw new Error(`El premio ${index + 1} debe tener nombre y descripción`);
+        }
+
+        const premioValido = {
+          nombre: premio.nombre,
+          descripcion: premio.descripcion
+        };
+
+        // Solo incluir campos de valor si se proporcionan
+        if (premio.moneda) {
+          premioValido.moneda = premio.moneda;
+        }
+        if (premio.valor !== undefined && premio.valor !== null && premio.valor !== '') {
+          premioValido.valor = premio.valor;
+        }
+        if (premio.valorBS !== undefined && premio.valorBS !== null && premio.valorBS !== '') {
+          premioValido.valorBS = premio.valorBS;
+        }
+
+        return premioValido;
+      });
+
+      const premiosCreados = await prizeRepository.crearPremiosParaRifa(rifaId, premiosValidos);
 
       res.status(201).json({
         success: true,
         message: `${premiosCreados.length} premios creados exitosamente`,
-        data: premiosCreados
+        data: premiosCreados.map(prize => prize.obtenerInfoPublica())
       });
     } catch (error) {
       res.status(400).json({
@@ -48,8 +73,7 @@ class PrizeController {
       });
     }
   }
-
-  // Obtener premio por ID
+  
   async obtenerPrize(req, res) {
     try {
       const { id } = req.params;

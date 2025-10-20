@@ -1,4 +1,5 @@
-// repositories/prizeRepository.js
+// repositories/prizeRepository.js - ACTUALIZADO con monedas múltiples
+const mongoose = require('mongoose');
 const Prize = require('../models/Prize');
 const fileService = require('../services/fileService');
 
@@ -13,7 +14,7 @@ class PrizeRepository {
     }
   }
 
-  // Crear múltiples premios para una rifa
+  // Crear múltiples premios para una rifa - ACTUALIZADO
   async crearPremiosParaRifa(rifaId, premiosData) {
     try {
       const premios = premiosData.map((premio, index) => ({
@@ -210,7 +211,7 @@ class PrizeRepository {
     }
   }
 
-  // Obtener estadísticas de premios por rifa
+  // Obtener estadísticas de premios por rifa - ACTUALIZADO para incluir monedas
   async obtenerEstadisticasPorRifa(rifaId) {
     try {
       const estadisticas = await Prize.aggregate([
@@ -219,7 +220,24 @@ class PrizeRepository {
           $group: {
             _id: '$estado',
             cantidad: { $sum: 1 },
-            totalValor: { $sum: '$valor' }
+            totalValorUSD: { 
+              $sum: { 
+                $cond: [
+                  { $eq: ['$moneda', 'USD'] }, 
+                  { $ifNull: ['$valor', 0] }, 
+                  0 
+                ] 
+              } 
+            },
+            totalValorBS: { 
+              $sum: { 
+                $cond: [
+                  { $eq: ['$moneda', 'BS'] }, 
+                  { $ifNull: ['$valorBS', 0] }, 
+                  0 
+                ] 
+              } 
+            }
           }
         }
       ]);
@@ -230,11 +248,25 @@ class PrizeRepository {
         estado: 'asignado' 
       });
 
+      // Calcular totales por moneda
+      const totalesMoneda = await Prize.aggregate([
+        { $match: { rifa: mongoose.Types.ObjectId(rifaId) } },
+        {
+          $group: {
+            _id: '$moneda',
+            totalValor: { $sum: { $ifNull: ['$valor', 0] } },
+            totalValorBS: { $sum: { $ifNull: ['$valorBS', 0] } },
+            cantidad: { $sum: 1 }
+          }
+        }
+      ]);
+
       return {
         totalPremios,
         premiosAsignados,
         premiosDisponibles: totalPremios - premiosAsignados,
-        desgloseEstados: estadisticas
+        desgloseEstados: estadisticas,
+        totalesPorMoneda: totalesMoneda
       };
     } catch (error) {
       throw new Error(`Error al obtener estadísticas: ${error.message}`);
@@ -246,7 +278,7 @@ class PrizeRepository {
     try {
       const premios = await Prize.find({ rifa: rifaId }).sort({ posicion: 1 });
       const posicionesOcupadas = premios.map(p => p.posicion);
-      const maxPosicion = Math.max(...posicionesOcupadas);
+      const maxPosicion = premios.length > 0 ? Math.max(...posicionesOcupadas) : 0;
       
       const posicionesDisponibles = [];
       for (let i = 1; i <= maxPosicion; i++) {
