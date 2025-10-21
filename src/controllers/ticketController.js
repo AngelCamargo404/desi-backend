@@ -243,6 +243,34 @@ class TicketController {
     }
   }
 
+  async cancelarCompra(req, res) {
+    try {
+      const { transaccionId } = req.params;
+      const { razon } = req.body;
+
+      if (!razon) {
+        return res.status(400).json({
+          success: false,
+          message: 'La razón de la cancelación es requerida'
+        });
+      }
+
+      const resultado = await ticketRepository.cancelarCompra(transaccionId, razon);
+
+      res.json({
+        success: true,
+        message: `Compra cancelada exitosamente. ${resultado.ticketsCancelados} ticket(s) liberados.`,
+        data: resultado
+      });
+    } catch (error) {
+      console.error('❌ Error en cancelarCompra:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
    async verificarCompra(req, res) {
     try {
       const { transaccionId } = req.params;
@@ -472,6 +500,29 @@ class TicketController {
         data: ticket
       });
     } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+  async obtenerComprasCanceladasPorRifa(req, res) {
+    try {
+      const { rifaId } = req.params;
+      const { pagina, limite } = req.query;
+
+      const resultado = await ticketRepository.obtenerComprasCanceladasPorRifa(
+        rifaId,
+        parseInt(pagina) || 1,
+        parseInt(limite) || 10
+      );
+
+      res.json({
+        success: true,
+        data: resultado
+      });
+    } catch (error) {
+      console.error('❌ Error en obtenerComprasCanceladasPorRifa:', error);
       res.status(400).json({
         success: false,
         message: error.message

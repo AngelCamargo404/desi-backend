@@ -20,27 +20,32 @@ const ticketSchema = new mongoose.Schema({
   comprador: {
     nombre: {
       type: String,
-      required: true,
-      trim: true
+      required: false, // CAMBIADO: No requerido
+      trim: true,
+      default: '' // Agregar valor por defecto
     },
     email: {
       type: String,
-      required: true,
+      required: false, // CAMBIADO: No requerido
       trim: true,
-      lowercase: true
+      lowercase: true,
+      default: '' // Agregar valor por defecto
     },
     telefono: {
       type: String,
-      trim: true
+      trim: true,
+      default: '' // Agregar valor por defecto
     },
     estadoCiudad: {
       type: String,
-      required: true,
-      trim: true
+      required: false, // CAMBIADO: No requerido
+      trim: true,
+      default: '' // Agregar valor por defecto
     },
     cedula: {
       type: String,
-      trim: true
+      trim: true,
+      default: '' // Agregar valor por defecto
     }
   },
   estado: {
@@ -64,13 +69,14 @@ const ticketSchema = new mongoose.Schema({
   },
   transaccionId: {
     type: String,
-    required: true, // NUEVO: Ahora es requerido
+    required: true,
     trim: true,
-    index: true // Índice para búsquedas rápidas
+    index: true
   },
   referenciaPago: {
     type: String,
-    trim: true
+    trim: true,
+    default: '' // Agregar valor por defecto
   },
   comprobante: {
     url: {
@@ -96,13 +102,76 @@ const ticketSchema = new mongoose.Schema({
   },
   verificadoPor: {
     type: String,
-    trim: true
+    trim: true,
+    default: '' // Agregar valor por defecto
+  },
+  // NUEVO CAMPO: Datos de cancelación
+  datosCancelacion: {
+    transaccionIdOriginal: {
+      type: String,
+      trim: true
+    },
+    comprador: {
+      nombre: {
+        type: String,
+        trim: true
+      },
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true
+      },
+      telefono: {
+        type: String,
+        trim: true
+      },
+      estadoCiudad: {
+        type: String,
+        trim: true
+      },
+      cedula: {
+        type: String,
+        trim: true
+      }
+    },
+    metodoPago: {
+      type: String,
+      enum: ['transferencia', 'pago_movil', 'zelle', 'binance', null]
+    },
+    referenciaPago: {
+      type: String,
+      trim: true
+    },
+    fechaCompra: {
+      type: Date
+    },
+    verificado: {
+      type: Boolean
+    },
+    fechaVerificacion: {
+      type: Date
+    },
+    verificadoPor: {
+      type: String,
+      trim: true
+    },
+    razon: {
+      type: String,
+      trim: true
+    },
+    fechaCancelacion: {
+      type: Date
+    },
+    canceladoPor: {
+      type: String,
+      trim: true
+    }
   }
 }, {
   timestamps: true
 });
 
-// Índice compuesto para evitar números duplicados en la misma rifa
+// Los índices, métodos estáticos y de instancia se mantienen igual...
 ticketSchema.index({ rifa: 1, numero: 1 }, { unique: true });
 ticketSchema.index({ codigo: 1 });
 ticketSchema.index({ 'comprador.email': 1 });
@@ -111,17 +180,49 @@ ticketSchema.index({ fechaCompra: 1 });
 ticketSchema.index({ metodoPago: 1 });
 ticketSchema.index({ 'comprador.estadoCiudad': 1 });
 ticketSchema.index({ verificado: 1 });
-ticketSchema.index({ transaccionId: 1 }); // NUEVO: índice para transacciones
+ticketSchema.index({ transaccionId: 1 });
+// NUEVO ÍNDICE para búsquedas de cancelaciones
+ticketSchema.index({ 'datosCancelacion.transaccionIdOriginal': 1 });
 
-// Los demás métodos se mantienen igual...
 ticketSchema.statics.verificarDisponibilidad = async function(rifaId, numero) {
-  const ticket = await this.findOne({ rifa: rifaId, numero });
-  return !ticket;
+  const ticket = await this.findOne({ 
+    rifa: rifaId, 
+    numero,
+    // Considerar NO disponibles solo los tickets vendidos/reservados SIN cancelar
+    $and: [
+      {
+        $or: [
+          { estado: 'vendido' },
+          { estado: 'reservado' }
+        ]
+      },
+      {
+        datosCancelacion: { $exists: false }
+      }
+    ]
+  });
+  
+  return !ticket; // true = disponible, false = ocupado
 };
 
 ticketSchema.statics.obtenerNumerosOcupados = async function(rifaId) {
-  const tickets = await this.find({ rifa: rifaId }, 'numero');
+  // Solo devolver números de tickets que estén VENDIDOS (no disponibles o cancelados)
+  const tickets = await this.find({ 
+    rifa: rifaId, 
+    estado: 'vendido'  // SOLO tickets vendidos, no los disponibles
+  }, 'numero');
+  
   return tickets.map(ticket => ticket.numero);
+};
+
+ticketSchema.statics.obtenerTodosLosNumerosConEstado = async function(rifaId) {
+  const tickets = await this.find({ rifa: rifaId }, 'numero estado');
+  
+  return tickets.map(ticket => ({
+    numero: ticket.numero,
+    estado: ticket.estado,
+    disponible: ticket.estado === 'disponible'
+  }));
 };
 
 // Método para obtener tickets agrupados por transacción
@@ -225,6 +326,74 @@ ticketSchema.statics.obtenerComprasPorRifa = async function(rifaId, filtros = {}
   } catch (error) {
     console.error('❌ Error en obtenerComprasPorRifa:', error);
     throw new Error(`Error al obtener compras por rifa: ${error.message}`);
+  }
+};
+
+// NUEVO MÉTODO: Obtener compras canceladas
+ticketSchema.statics.obtenerComprasCanceladasPorRifa = async function(rifaId, pagina = 1, limite = 10) {
+  try {
+    const skip = (pagina - 1) * limite;
+    
+    // Buscar tickets que tengan datosCancelacion (lo que indica que fueron cancelados)
+    const query = { 
+      rifa: rifaId,
+      'datosCancelacion': { $exists: true, $ne: null }
+    };
+
+    const ticketsCancelados = await this.find(query)
+      .sort({ 'datosCancelacion.fechaCancelacion': -1 })
+      .skip(skip)
+      .limit(limite);
+
+    // Agrupar por transaccionId original de la cancelación
+    const comprasAgrupadas = {};
+    
+    ticketsCancelados.forEach(ticket => {
+      const transaccionIdOriginal = ticket.datosCancelacion.transaccionIdOriginal;
+      
+      if (!comprasAgrupadas[transaccionIdOriginal]) {
+        comprasAgrupadas[transaccionIdOriginal] = {
+          transaccionIdOriginal: transaccionIdOriginal,
+          transaccionIdCancelacion: ticket.transaccionId,
+          comprador: ticket.datosCancelacion.comprador,
+          metodoPago: ticket.datosCancelacion.metodoPago,
+          referenciaPago: ticket.datosCancelacion.referenciaPago,
+          fechaCompra: ticket.datosCancelacion.fechaCompra,
+          fechaCancelacion: ticket.datosCancelacion.fechaCancelacion,
+          razon: ticket.datosCancelacion.razon,
+          canceladoPor: ticket.datosCancelacion.canceladoPor,
+          tickets: [],
+          cantidadTickets: 0,
+          numerosTickets: []
+        };
+      }
+      
+      comprasAgrupadas[transaccionIdOriginal].tickets.push({
+        _id: ticket._id,
+        numero: ticket.numero,
+        codigo: ticket.codigo,
+        precio: ticket.precio
+      });
+      
+      comprasAgrupadas[transaccionIdOriginal].cantidadTickets++;
+      comprasAgrupadas[transaccionIdOriginal].numerosTickets.push(ticket.numero);
+    });
+
+    const comprasArray = Object.values(comprasAgrupadas)
+      .sort((a, b) => new Date(b.fechaCancelacion) - new Date(a.fechaCancelacion));
+
+    const total = await this.countDocuments(query);
+
+    return {
+      compras: comprasArray,
+      paginaActual: pagina,
+      totalPaginas: Math.ceil(total / limite),
+      totalCompras: comprasArray.length,
+      hasNext: pagina < Math.ceil(total / limite),
+      hasPrev: pagina > 1
+    };
+  } catch (error) {
+    throw new Error(`Error al obtener compras canceladas: ${error.message}`);
   }
 };
 

@@ -12,7 +12,9 @@ router.get('/metodos-pago/:metodoPago', ticketController.obtenerInformacionMetod
 // NUEVAS RUTAS para compras agrupadas
 router.get('/rifa/:rifaId/verificar-tickets', ticketController.verificarTicketsPorEmail);
 router.get('/rifa/:rifaId/compras', ticketController.obtenerComprasPorRifa);
+router.get('/rifa/:rifaId/compras-canceladas', ticketController.obtenerComprasCanceladasPorRifa);
 router.post('/compra/:transaccionId/verificar', ticketController.verificarCompra);
+router.post('/compra/:transaccionId/cancelar', ticketController.cancelarCompra);
 
 // Rutas existentes...
 router.get('/rifa/:rifaId', ticketController.obtenerTicketsPorRifa);
